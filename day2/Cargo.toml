@@ -1,0 +1,7 @@
+[package]
+name = "day2"
+version = "0.1.0"
+authors = ["platonv"]
+
+[dependencies]
+anyhow = "1.0.40"
