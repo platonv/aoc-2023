@@ -38,10 +38,7 @@ impl Game {
     ]);
     self.sets.iter().all(|set| {
       set.cubes.iter().all(|(color, number)| {
-        if number > maximums.get(&*color.as_str()).unwrap() {
-          return false;
-        } else {
-          return true;}
+        number > maximums.get(&*color.as_str()).unwrap()
       })
     })
   }
