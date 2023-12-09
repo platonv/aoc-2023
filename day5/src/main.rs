@@ -62,6 +62,8 @@ impl Recipe {
     let mut seeds = VecDeque::from([seed.clone()]);
     let mut dests = Vec::new();
 
+    println!("Seed: {:?}", seed);
+    println!("Recipe: {:?}", self);
     while !seeds.is_empty() {
       let remaining = seeds.pop_front().unwrap();
       let mut intersected = false;
@@ -71,9 +73,11 @@ impl Recipe {
           println!("intersected: {:?} {:?} {:?} {:?}", remaining, map, i1, i2);
           if remaining.source < i1 {
             seeds.push_back(SeedPair { source: remaining.source, length: i1 - remaining.source });
+            println!("pushing back: {:?}", seeds.back());
           }
           if i2 < remaining.source + remaining.length {
             seeds.push_back(SeedPair { source: i2, length: remaining.source + remaining.length - i2});
+            println!("pushing back: {:?}", seeds.back());
           }
           dests.push(
               SeedPair { 
@@ -81,6 +85,7 @@ impl Recipe {
                 length: i2 - i1
               },
           );
+          println!("Dests: {:?}", dests);
           intersected = true;
           break;
         }
@@ -100,7 +105,7 @@ struct SeedPair {
 }
 
 fn main() {
-  let lines: Vec<&str> = include_str!("input2.txt").lines().collect();
+  let lines: Vec<&str> = include_str!("input1_example.txt").lines().collect();
   let mut seed_pairs: Vec<SeedPair> = Vec::new();
 
   let mut next_recipe = true;
