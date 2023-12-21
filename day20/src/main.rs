@@ -5,9 +5,10 @@ use std::collections::VecDeque;
 use std::cell::RefCell;
 
 extern crate anyhow;
-use anyhow::{Result, anyhow, bail, Ok};
+use anyhow::{Result, anyhow, bail, Ok, Error};
 
 extern crate regex;
+use num::Integer;
 use regex::Regex;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -100,55 +101,75 @@ impl Module {
   }
 }
 
-fn push_button(modules: &HashMap<String, Rc<RefCell<Module>>>) -> Result<(u64, u64)> {
+fn solve_part2(modules: &HashMap<String, Rc<RefCell<Module>>>) -> Result<u64> {
   let mut queue: VecDeque<(Rc<RefCell<Module>>, Pulse, String)> = VecDeque::new();
   let broadcaster = modules.get("broadcaster").unwrap();
+  let last = modules.values().find(|m| m.borrow().destinations.contains(&"rx".to_string())).unwrap();
+  let last_id = last.borrow().id.clone();
 
-  let mut lows = 1;
-  let mut highs = 0;
+  let mut pushes = 0;
+  let last_4 = modules.values()
+                                   .filter(|m| m.borrow().destinations.contains(&last.borrow().id.clone()))
+                                   .map(|m| m.borrow().id.clone())
+                                   .collect::<Vec<String>>();
 
-  queue.push_back((broadcaster.clone(), Pulse::LowPulse, String::new()));
-  while queue.len() > 0 {
-    let (module, pulse, from) = queue.pop_front().unwrap();
+  println!("last_4: {:?}", last_4);
 
-    let rc = module.clone();
-    let mut m = rc.try_borrow_mut()?;
-    let trigger_result = m.trigger(&pulse, from);
+  let mut found = HashMap::new();
+  let mut cycles = HashMap::new();
 
+  for id in last_4 {
+    found.insert(id.clone(), false);
+    cycles.insert(id.clone(), 0);
+  }
 
-    match trigger_result {
-      Some(next_pulse) => 
-        for destination in &m.destinations {
-          println!("{} -{:?}> {}", m.id, next_pulse, destination);
-          highs += match next_pulse {
-            Pulse::HighPulse => 1,
-            _ => 0,
-          };
-          lows += match next_pulse {
-            Pulse::LowPulse => 1,
-            _ => 0,
-          };
+  loop {
+    pushes += 1;
+    queue.push_back((broadcaster.clone(), Pulse::LowPulse, String::new()));
+    while queue.len() > 0 {
+      let (module, pulse, from) = queue.pop_front().unwrap();
 
-          let dOpt= modules.get(destination);
-          if dOpt.is_none() {
-            continue;
-          }
+      let rc = module.clone();
+      let mut m = rc.try_borrow_mut()?;
+      let trigger_result = m.trigger(&pulse, from.clone());
 
-          let d = dOpt.unwrap();
+      if m.id.clone() == last_id && pulse == Pulse::HighPulse {
+        found.insert(from.clone(), true);
 
-          queue.push_back((d.clone(), next_pulse.clone(), m.id.clone()));
+        if cycles[&from] == 0 {
+          println!("{}: {}", from, pushes);
+          cycles.insert(from.clone(), pushes);
         }
-      None => {}
+
+        if cycles.values().all(|c| *c > 0) {
+          let res = cycles.iter().fold(1, |acc, (_, cycle)| acc.lcm(cycle));
+          return Ok(res);
+        }
+      }
+
+      match trigger_result {
+        Some(next_pulse) => {
+
+          for destination in &m.destinations {
+            let dOpt= modules.get(destination);
+            if dOpt.is_none() {
+              continue;
+            }
+
+            let d = dOpt.unwrap();
+
+            queue.push_back((d.clone(), next_pulse.clone(), m.id.clone()));
+          }
+        }
+        None => {}
+      }
     }
   }
-  println!("");
-  println!("highs: {}, lows: {}", highs, lows);
-  println!("");
-  Ok((highs, lows))
+  bail!("Could not find a solution");
 }
 
 fn main() -> Result<()> {
-  let lines: Vec<&str> = include_str!("input1.txt").lines().collect();
+  let lines: Vec<&str> = include_str!("input2.txt").lines().collect();
 
   let modulesMap = lines.iter()
                                                        .map(|s| parse_destination(s).unwrap())
@@ -172,15 +193,7 @@ fn main() -> Result<()> {
     }
   };
 
-  let mut s1 = 0;
-  let mut s2 = 0;
-  for _ in 0..1000 {
-    let (r1, r2) = push_button(&modulesMap)?;
-    s1 += r1;
-    s2 += r2;
-  }
-
-  let res = s1 * s2;
+  let res = solve_part2(&modulesMap)?;
 
   println!("res: {:?}", res);
 
