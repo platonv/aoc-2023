@@ -1,13 +1,7 @@
-use std::ops::DerefMut;
-use std::rc::Rc;
-use std::{collections::HashMap, thread::current};
-use std::collections::VecDeque;
-use std::cell::RefCell;
-use itertools::Unique;
 use itertools::Itertools;
 
 extern crate anyhow;
-use anyhow::{Result, anyhow, bail, Ok};
+use anyhow::{Result, Ok};
 
 fn plots_at_steps(grid: &Vec<Vec<char>>, start: (usize, usize), steps: usize) -> Vec<(usize, usize)> {
   let mut current = vec![start];
