@@ -61,7 +61,7 @@ impl Brick {
 fn dropped(bricks: Vec<Brick>) -> Vec<Brick> {
   let mut laid_bricks: Vec<Brick> = vec![];
   let mut supports: HashMap<String, Vec<String>> = HashMap::new();
-  let mut new_supports: HashMap<String, i64> = HashMap::new();
+  let mut supports2: HashMap<String, Vec<String>> = HashMap::new();
 
   let mut sorted_bricks = bricks.clone();
   sorted_bricks.sort_by(|a, b| {
@@ -92,11 +92,6 @@ fn dropped(bricks: Vec<Brick>) -> Vec<Brick> {
     }
   }
 
-
-  for (brick_name, supported_by) in &supports {
-    println!("{} is supported by {:?}", brick_name, supported_by);
-  }
-
   let mut c = 0;
   for brick in &laid_bricks {
     if !supports.values().contains(&vec![brick.name.clone()]) {
@@ -104,15 +99,67 @@ fn dropped(bricks: Vec<Brick>) -> Vec<Brick> {
       println!("{} can be destroyed", brick.name);
       continue;
     }
-    // println!("{} cannot be destroyed", brick.name);
   }
 
-  println!("Part 1: {}", c);
+  println!("Part1: {}", c);
+
+  let mut res = 0;
+
+  laid_bricks.sort_by(|a, b| a.name.clone().cmp(&b.name.clone()));
+
+  for brick in &laid_bricks {
+    let d = drops(brick.name.clone(), &supports);
+    res += d;
+  }
+
+  println!("Part2 (slow af): {}", res);
+
   laid_bricks
 }
 
+fn drops(brick_name: String, supports: &HashMap<String, Vec<String>>) -> i64 {
+  let mut dropped = supports.clone();
+  let mut current_dropping = vec![brick_name.clone()];
+  let mut finished = false;
+  let mut c = 0;
+
+  println!("BRICK_NAME: {}", brick_name);
+  while !finished {
+    finished = true;
+    for (_, supported_by) in dropped.iter_mut() {
+      let s = supported_by.clone();
+      let mut support = s.iter().filter(|x| !current_dropping.contains(x)).collect::<Vec<&String>>();
+
+      if support.len() != supported_by.len() {
+        finished = false;
+        supported_by.clear();
+        for s in support {
+          supported_by.push(s.clone());
+        }
+      }
+    }
+
+    current_dropping.clear();
+
+    for (brick_name, supported_by) in dropped.clone() {
+      if supported_by.len() == 0 {
+        current_dropping.push(brick_name.clone());
+      }
+    }
+  }
+
+  for (_, supported_by) in &dropped {
+    if supported_by.len() == 0 {
+      c += 1;
+    }
+  }
+
+  println!("c: {}", c);
+  c
+}
+
 fn main() -> Result<()> {
-  let lines: Vec<&str> = include_str!("input1.txt").lines().collect();
+  let lines: Vec<&str> = include_str!("input2.txt").lines().collect();
 
   let bricks = lines.iter().enumerate().map(|(i, line)| {
     match line.split("~").collect::<Vec<&str>>().as_slice() {
@@ -126,9 +173,7 @@ fn main() -> Result<()> {
     }
   }).collect::<Vec<Brick>>();
 
-  let bricks = dropped(bricks);
-
-  println!("Part 2: {:?}", bricks.len());
+  dropped(bricks);
 
   // println!("Part 1: {:?}", bricks);
 
